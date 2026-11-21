@@ -862,10 +862,6 @@ body.locked{overflow:hidden}
         <summary>¿Qué garantía tienen los equipos y la instalación?<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="#0b6fe0" stroke-width="2.6" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></span></summary>
         <div class="faq-body">Todos los equipos tienen <strong>1 año de garantía por defecto de fábrica</strong>. La garantía no aplica cuando la falla se debe a la luz eléctrica (variaciones de voltaje, descargas o apagones) ni al descuido del equipo, como golpes, mal uso o falta de cuidado.</div>
       </details>
-      <details>
-        <summary>¿Cuánto tarda la instalación?<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="#0b6fe0" stroke-width="2.6" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></span></summary>
-        <div class="faq-body">Un kit estándar de cámaras o de alarma se instala normalmente el mismo día. La automatización de un portón puede tardar de uno a dos días según el estado del portón y las adecuaciones necesarias.</div>
-      </details>
     </div>
   </div>
 </section>
@@ -1327,7 +1323,30 @@ body.locked{overflow:hidden}
     });
   }
   function menuChips(){
-    setChips(["Quiero una cotización", "¿Cuánto cuesta?", "¿Puedo ver las cámaras en mi celular?", "¿Cuánto tarda la instalación?", "¿Tienen garantía?"]);
+    setChips(["Quiero una cotización", "¿Cuánto cuesta?", "¿Puedo ver las cámaras en mi celular?", "¿Tienen garantía?"]);
+  }
+
+  function personalInfoRedirect(){
+    var link = "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent("Hola Iván, tengo una duda sobre mi cotización de ISAMABI.");
+    botSay("Ese detalle se confirma directo con Iván por WhatsApp, para darte la información exacta según tu caso. Escríbele aquí y te lo confirma sin compromiso:" +
+      '<a class="ai-wa-btn" href="' + link + '" target="_blank" rel="noopener">' + WA_ICON + "Escribirle a Iván por WhatsApp · +52 55 4421 4412</a>");
+    menuChips();
+    return true;
+  }
+
+  function isPersonalInfoTopic(t){
+    /* Formas de pago y anticipo */
+    if (/(forma.*pago|formas de pago|anticipo|pago|pagar|pagos|efectivo|transferencia|tarjeta|mensualidad|a meses|contra entrega|contraentrega|dep[oó]sito)/.test(t)) return true;
+    /* Zonas de cobertura */
+    if (/(zona|cobertura|hasta d[oó]nde|a d[oó]nde van|van a domicilio|zona.*trabaj|d[oó]nde trabajan|d[oó]nde atienden|d[oó]nde est[aá]n ubicados|ubicaci[oó]n de|chalco|zona de trabajo)/.test(t)) return true;
+    /* Horario de atención */
+    if (/(horario|a qu[eé] hora|horas.*atienden|abren|cierran|atienden.*hora|hora.*atenci)/.test(t)) return true;
+    /* Costo de revisión o visita */
+    if (/((visita|revisi[oó]n|ir a ver|ir a revisar).*(costo|cuesta|precio|cobran|cobro|gratis|cu[aá]nto))|((costo|cuesta|precio|cobran|cu[aá]nto).*(visita|revisi[oó]n|ir a ver|ir a revisar))/.test(t)) return true;
+    if (/(costo de la visita|precio de la visita|costo de revisi|cu[aá]nto cobran por (venir|visita|revisar)|cobran la visita|cobran por venir|visita.*domicilio.*costo)/.test(t)) return true;
+    /* Cuánto tarda la instalación */
+    if (/(tarda|tardan|demora|demoran|tiempo.*instal|cu[aá]nto.*instal|instal.*cu[aá]nto|d[ií]as.*instal|instal.*d[ií]as|cu[aá]nto se tardan|en cu[aá]nto tiempo)/.test(t)) return true;
+    return false;
   }
 
   function waQuoteLink(q){
@@ -1382,6 +1401,9 @@ body.locked{overflow:hidden}
 
   function faq(text){
     var t = text.toLowerCase();
+    if (isPersonalInfoTopic(t)) {
+      return personalInfoRedirect();
+    }
     if (/(precio|cuesta|cuestan|vale|costo)/.test(t)) {
       botSay("No publicamos precios fijos porque cada propiedad es distinta: el precio depende del tamaño del lugar, las distancias de cableado y el equipo que elijas. La cotización es por WhatsApp, sin costo y sin compromiso, y te confirman el precio cerrado por escrito. Si quieres, armo tu cotización aquí mismo y la mandas por WhatsApp.");
       menuChips(); return true;
@@ -1390,28 +1412,12 @@ body.locked{overflow:hidden}
       botSay("Sí. Todos los equipos tienen <strong>1 año de garantía por defecto de fábrica</strong>.\n\nOjo: la garantía no aplica cuando la falla se debe a la luz eléctrica (variaciones de voltaje, descargas o apagones) ni al descuido del equipo, como golpes, mal uso o falta de cuidado.");
       menuChips(); return true;
     }
-    if (/(tarda|tiempo|cu[aá]nto.*instala|d[ií]as)/.test(t)) {
-      botSay("Un kit estándar de cámaras o de alarma se instala normalmente el mismo día. La automatización de un portón puede tardar de uno a dos días, según su estado y las adecuaciones necesarias.");
-      menuChips(); return true;
-    }
     if (/(celular|app|aplicaci|ver las c|monitore|distancia|internet)/.test(t)) {
       botSay("Sí. Configuramos la aplicación en tu celular para que veas el video en vivo y las grabaciones desde cualquier lugar con internet, recibas alertas de movimiento y armes o desarmes tu alarma a distancia, sin costo mensual adicional por la visualización básica.");
       menuChips(); return true;
     }
     if (/(mi port[oó]n|port[oó]n.*actual|ya tengo|se puede automatizar)/.test(t)) {
       botSay("En la mayoría de los casos, sí: si tu portón corredizo o abatible está en buen estado mecánico, instalamos el motor y la electrónica sin cambiar el portón. Si quieres, te cotizo la automatización aquí mismo.");
-      menuChips(); return true;
-    }
-    if (/(horario|hora|abren|atienden)/.test(t)) {
-      botSay("El horario de atención es de lunes a sábado, de 9:00 a 19:00 h. La instalación es a domicilio, previa cita.");
-      menuChips(); return true;
-    }
-    if (/(d[oó]nde|zona|cobertura|ubicaci|domicilio|van a)/.test(t)) {
-      botSay("El servicio es instalación a domicilio, previa cita. Para confirmar cobertura en tu zona y agendar, lo más rápido es escribir por WhatsApp al 55 4421 4412.");
-      menuChips(); return true;
-    }
-    if (/(pago|anticipo|pagar|tarjeta|efectivo)/.test(t)) {
-      botSay("Las condiciones de pago (anticipo o pago contra entrega) se indican en la cotización final de tu proyecto y se confirman por escrito vía WhatsApp antes de cualquier pago.");
       menuChips(); return true;
     }
     if (/(mantenimiento|reparaci|reparar|falla|no funciona)/.test(t)) {
@@ -1440,6 +1446,11 @@ body.locked{overflow:hidden}
       state = "menu";
       botSay("Claro, volvemos al inicio. ¿En qué te ayudo?");
       menuChips();
+      return;
+    }
+
+    if (state === "menu" && isPersonalInfoTopic(t)) {
+      personalInfoRedirect();
       return;
     }
 

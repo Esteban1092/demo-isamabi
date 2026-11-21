@@ -312,8 +312,14 @@ footer.site ul button{color:#bfd6f2;font-size:.93rem;min-height:38px;padding:4px
 .ai-tip{position:fixed;right:88px;bottom:108px;z-index:85;background:var(--navy);color:#fff;font-size:.85rem;font-weight:600;padding:9px 14px;border-radius:9px;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:opacity .2s}
 .ai-fab:hover + .ai-tip,.ai-fab:focus-visible + .ai-tip{opacity:1}
 .ai-panel{position:fixed;right:18px;bottom:166px;z-index:95;width:min(384px,calc(100vw - 32px));height:min(580px,calc(var(--vvh,100dvh) - 186px));max-height:calc(var(--vvh,100dvh) - 24px);background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-lg);display:none;flex-direction:column;overflow:hidden}
-.ai-panel.keyboard-open{bottom:auto}
 .ai-panel.open{display:flex}
+/* Hoja completa en móvil: el panel ocupa exactamente el viewport visible
+   (top y height los fija JS desde visualViewport), así el teclado nunca lo
+   corta ni lo deja flotando sobre la página. */
+.ai-panel.sheet{left:0;right:0;width:auto;bottom:auto;max-height:none;border-left:0;border-right:0;border-radius:0;box-shadow:none}
+.ai-panel.sheet .ai-chips{max-height:84px}
+body.ai-open .ai-fab{opacity:0;visibility:hidden;pointer-events:none}
+@media(max-width:700px){body.ai-open .wa-float,body.ai-open .wa-tip{opacity:0;visibility:hidden;pointer-events:none}}
 .ai-head{background:var(--navy);color:#fff;padding:15px 18px;display:flex;align-items:center;gap:12px;flex:none}
 .ai-head .ai-ava{width:42px;height:42px;flex:none;border-radius:50%;background:var(--blue);display:grid;place-items:center}
 .ai-head .ai-ava svg{width:24px;height:24px}
@@ -352,7 +358,7 @@ footer.site ul button{color:#bfd6f2;font-size:.93rem;min-height:38px;padding:4px
 .ai-send{flex:none;width:48px;height:48px;border-radius:10px;border:0;background:var(--blue);color:#fff;cursor:pointer;display:grid;place-items:center}
 .ai-send:hover{background:var(--blue-dark)}
 .ai-send svg{width:21px;height:21px}
-@media(max-width:560px){.ai-panel{right:12px;left:12px;width:auto;bottom:162px;height:min(580px,calc(var(--vvh,100dvh) - 178px))}.ai-panel.keyboard-open{left:8px;right:8px;border-radius:14px}.ai-panel.keyboard-open .ai-chips{max-height:88px}.ai-fab{bottom:92px;right:16px}.ai-tip{display:none}}
+@media(max-width:560px){.ai-panel{right:12px;left:12px;width:auto;bottom:162px;height:min(580px,calc(var(--vvh,100dvh) - 178px))}.ai-fab{bottom:92px;right:16px}.ai-tip{display:none}}
 
 /* Cookie banner */
 .cookie-banner{position:fixed;left:16px;bottom:16px;z-index:90;width:min(480px,calc(100vw - 110px));background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lg);padding:20px 20px 18px;display:none}
@@ -1246,34 +1252,32 @@ body.locked{overflow:hidden}
 
   function scrollDown(){ msgs.scrollTop = msgs.scrollHeight; }
 
-  /* Ajuste del panel al viewport visible: cuando el teclado del celular
-     se abre, el panel se encoge a la pantalla visible para que el campo
-     de texto quede siempre arriba del teclado y los mensajes se sigan
-     leyendo y desplazando. Usa visualViewport (alto dinámico real). */
+  /* Panel en móvil = hoja completa pegada al viewport VISIBLE.
+     El intento anterior anclaba el panel con bottom al viewport de layout
+     y solo lo corregía si detectaba el teclado restando alturas; con
+     interactive-widget=resizes-content esa resta da cero, el panel quedaba
+     anclado a la pantalla completa y el teclado lo cortaba por arriba.
+     Ahora, mientras el panel está abierto en pantalla chica, su top y su
+     height se fijan SIEMPRE desde visualViewport (offsetTop + height):
+     ocupa exactamente lo que se ve, abra o cierre el teclado, y el campo
+     de texto queda pegado justo encima del teclado. Sin heurísticas. */
+  function isSmallScreen(){ return window.innerWidth <= 700; }
   function fitPanelToViewport(){
     var vv = window.visualViewport;
     if (vv) {
       document.documentElement.style.setProperty("--vvh", vv.height + "px");
     }
     if (!panel.classList.contains("open")) return;
-    var small = window.innerWidth <= 700;
-    if (!vv || !small) {
-      panel.classList.remove("keyboard-open");
+    if (!vv || !isSmallScreen()) {
+      panel.classList.remove("sheet");
       panel.style.top = ""; panel.style.height = "";
+      document.body.classList.remove("locked");
       return;
     }
-    var layoutH = window.innerHeight || vv.height;
-    var keyboardOpen = (layoutH - vv.height) > 80 || document.activeElement === input;
-    if (keyboardOpen && (layoutH - vv.height) > 80) {
-      var margin = 8;
-      var h = Math.max(240, vv.height - margin * 2);
-      panel.classList.add("keyboard-open");
-      panel.style.height = h + "px";
-      panel.style.top = (vv.offsetTop + margin) + "px";
-    } else {
-      panel.classList.remove("keyboard-open");
-      panel.style.top = ""; panel.style.height = "";
-    }
+    document.body.classList.add("locked");
+    panel.classList.add("sheet");
+    panel.style.top = vv.offsetTop + "px";
+    panel.style.height = vv.height + "px";
     requestAnimationFrame(scrollDown);
   }
   if (window.visualViewport) {
@@ -1536,15 +1540,23 @@ body.locked{overflow:hidden}
 
   function openPanel(){
     panel.classList.add("open");
+    document.body.classList.add("ai-open");
+    if (isSmallScreen()) document.body.classList.add("locked");
     fab.setAttribute("aria-expanded", "true");
     fitPanelToViewport();
     if (!started) { started = true; greet(); }
-    setTimeout(function(){ input.focus(); fitPanelToViewport(); scrollDown(); }, 60);
+    setTimeout(function(){
+      try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
+      fitPanelToViewport();
+      scrollDown();
+    }, 60);
   }
   function closePanel(){
     panel.classList.remove("open");
-    panel.classList.remove("keyboard-open");
+    panel.classList.remove("sheet");
     panel.style.top = ""; panel.style.height = "";
+    document.body.classList.remove("ai-open");
+    document.body.classList.remove("locked");
     fab.setAttribute("aria-expanded", "false");
     if (document.activeElement === input) input.blur();
     fab.focus();
